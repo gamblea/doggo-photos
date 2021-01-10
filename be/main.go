@@ -26,12 +26,11 @@ import (
 	_ "image/png"
 )
 
+// Photos file system storage path mapped to a volume in docker-compose
 const picturesPath = "/pictures/"
 
 const databaseName = "doggo_photos_db"
 const userTable = "users"
-
-// add id uniqueness
 const userSchema = "(username varchar(20), passhash binary(60), loginKey varchar(255), UNIQUE(username));"
 const photoTable = "photos"
 const photoSchema = "(username varchar(20), id varchar(60), date datetime, width int DEFAULT 4, height int DEFAULT 3, UNIQUE(username, id));"
@@ -76,16 +75,14 @@ func createNewAccount(username string, password string) (string, error) {
 }
 
 // GetUserPhotos returns the photos that a user owns
-func GetUserPhotos(loginKey string) (*userDataResponse, error) {
+func GetUserPhotos(loginKey string) (*UserDataResponse, error) {
 	db, err := getDBConn()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	var dataRes userDataResponse
-
-	username := ""
+	var dataRes UserDataResponse
 	sqlFindUser := `SELECT users.username, photos.ID, photos.date, photos.width, photos.height FROM users INNER JOIN photos ON users.username = photos.username WHERE users.loginKey=? `
 	res, err := db.Query(sqlFindUser, loginKey)
 	if err != nil {
@@ -116,6 +113,8 @@ func GetUserPhotos(loginKey string) (*userDataResponse, error) {
 	return &dataRes, nil
 }
 
+// PhotoIDToSrc transforms a username and photoID to a src path the user
+// can access the photo at
 func PhotoIDToSrc(username string, photoID string) string {
 	return path.Join(picturesPath, username, photoID)
 }
@@ -253,12 +252,8 @@ func ServeUserPhotos(w http.ResponseWriter, r *http.Request) {
 
 	res, err := GetUserPhotos(data.LoginKey)
 	if err != nil {
-		json.NewEncoder(w).Encode(errorBody{Error: err.Error()})
+		json.NewEncoder(w).Encode(ErrorBody{Error: err.Error()})
 		return
-	}
-
-	if res == nil {
-		log.Fatal("nil pointer")
 	}
 
 	json.NewEncoder(w).Encode(res)
@@ -391,11 +386,11 @@ func TokenLoginServe(w http.ResponseWriter, r *http.Request) {
 
 	username, err := GetUserName(data.LoginKey)
 	if err != nil {
-		json.NewEncoder(w).Encode(errorBody{Error: "Unauthorized"})
+		json.NewEncoder(w).Encode(ErrorBody{Error: "Unauthorized"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(userRequest{Username: username})
+	json.NewEncoder(w).Encode(UserRequest{Username: username})
 }
 
 // LoginServe handles login requests
@@ -407,11 +402,11 @@ func LoginServe(w http.ResponseWriter, r *http.Request) {
 
 	loginKey, err := accountLogin(data.Username, data.Password)
 	if err != nil {
-		json.NewEncoder(w).Encode(errorBody{Error: "Incorrect Password"})
+		json.NewEncoder(w).Encode(ErrorBody{Error: "Incorrect Password"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(loginResponse{LoginKey: loginKey})
+	json.NewEncoder(w).Encode(LoginResponse{LoginKey: loginKey})
 }
 
 // generateToken generates login token to be cached by the browser to request further resouces
@@ -443,23 +438,11 @@ func CreateAccountServe(w http.ResponseWriter, r *http.Request) {
 
 	loginKey, err := createNewAccount(data.Username, data.Password)
 	if err != nil {
-		json.NewEncoder(w).Encode(errorBody{Error: err.Error()})
+		json.NewEncoder(w).Encode(ErrorBody{Error: err.Error()})
 		return
 	}
 
-	json.NewEncoder(w).Encode(loginResponse{LoginKey: loginKey})
-}
-
-// GetPicture API
-func GetPicture(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	token := query.Get("key")
-	if token != "" {
-
-	} else {
-		fmt.Fprint(w, "Cannot access")
-	}
-
+	json.NewEncoder(w).Encode(LoginResponse{LoginKey: loginKey})
 }
 
 // Photo structure for working with uploading photos
