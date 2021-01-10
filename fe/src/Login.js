@@ -9,7 +9,6 @@ import Cookies from "js-cookie";
 
 function createOnLogin(setloginKey, setLoginError, history) {
   return (data) => {
-    console.log(data);
     axios
       .post(`/api/account/login`, {
         username: data.username,
@@ -17,23 +16,16 @@ function createOnLogin(setloginKey, setLoginError, history) {
       })
       .then((res) => {
         const loginKey = res.data?.loginKey;
-        console.log("loginKey");
-        console.log(loginKey);
         if (loginKey) {
           Cookies.set("doggo-photos-loginKey", res.data.loginKey, {
             expires: 7,
           });
           setloginKey(loginKey);
           history.push("/dashboard");
-          // window.localStorage.setItem("loginKey", res.data.loginKey);
-          // setloginKey(res.data.loginKey);
-          // setUser(res.data.name);
         } else {
           const loginError = res.data?.error ? res.data?.error : "Login Error";
           setLoginError(loginError);
         }
-        console.log(res);
-        console.log(res.data);
       })
       .catch((err) => {
         setLoginError("Could not login");
@@ -49,7 +41,7 @@ const schema = yup.object().shape({
 export function Login({ setloginKey }) {
   const [loginError, setLoginError] = useState("");
   const history = useHistory();
-  const { register, handleSubmit, watch, errors } = useForm({
+  const { register, handleSubmit, errors } = useForm({
     resolver: yupResolver(schema),
   });
   return (

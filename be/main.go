@@ -56,7 +56,7 @@ func createNewAccount(username string, password string) (string, error) {
 	passBytes := []byte(password)
 	passhash, err := bcrypt.GenerateFromPassword(passBytes, bcrypt.MinCost)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	err = os.Mkdir(path.Join(picturesPath, username), 0777)
@@ -82,7 +82,7 @@ func GetUserPhotos(loginKey string) (*UserDataResponse, error) {
 	defer db.Close()
 
 	var dataRes UserDataResponse
-	sqlFindUser := `SELECT users.username, photos.ID, photos.date, photos.width, photos.height FROM users INNER JOIN photos ON users.username = photos.username WHERE users.loginKey=? `
+	sqlFindUser := `SELECT users.username, photos.ID, photos.date, photos.width, photos.height FROM users INNER JOIN photos ON users.username = photos.username WHERE users.loginKey=? ORDER BY  photos.date DESC ;`
 	res, err := db.Query(sqlFindUser, loginKey)
 	if err != nil {
 		return nil, err
@@ -96,8 +96,6 @@ func GetUserPhotos(loginKey string) (*UserDataResponse, error) {
 		username := ""
 
 		err := res.Scan(&username, &photoID, &photo.Date, &photo.Width, &photo.Height)
-		println(photoID)
-		println(photo.Width)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +121,7 @@ func accountLogin(username string, password string) (string, error) {
 	db, err := getDBConn()
 
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer db.Close()
 
@@ -204,8 +202,6 @@ func createDB() {
 
 // PicturesServer serves images
 func PicturesServer(w http.ResponseWriter, r *http.Request) {
-	println("Serving Picture")
-	println(r.URL.Path)
 	parts := strings.Split(r.URL.Path, "/")
 	user := parts[2]
 	imageID := parts[3]
@@ -222,7 +218,6 @@ func PicturesServer(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Access Restricted")
 		return
 	}
-	log.Print(username)
 
 	err := writePicture(w, username, imageID)
 	if err != nil {
@@ -265,11 +260,9 @@ func GetUserName(loginKey string) (string, error) {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	println(loginKey)
 	username := ""
 	sqlFindUser := `SELECT username FROM users WHERE loginKey=?`
 	db.QueryRow(sqlFindUser, loginKey).Scan(&username)
-	println(username)
 	if username == "" {
 		return "", errors.New("Please login again")
 	}
@@ -326,8 +319,6 @@ func UploadPhotosService(w http.ResponseWriter, r *http.Request) {
 			errors = append(errors, err.Error())
 			continue
 		}
-		println(image.Width)
-		println(image.Height)
 
 		width := 0
 		height := 0
@@ -349,12 +340,14 @@ func UploadPhotosService(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ErrorBody{Error: strings.Join(errors, ",")})
 }
 
 // UploadImage writes a photo to database and to file system
 func (photo *Photo) UploadImage(db *sql.DB) error {
 	filePath := path.Join(picturesPath, photo.User, photo.ID)
-	println(filePath)
+
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		return errors.New("File already exists")
 	}
@@ -426,7 +419,6 @@ func generateToken(username string) string {
 
 // CreateAccountServe API
 func CreateAccountServe(w http.ResponseWriter, r *http.Request) {
-	println("create account")
 	w.Header().Set("Content-Type", "application/json")
 	var data createAccountBody
 	err := json.NewDecoder(r.Body).Decode(&data)

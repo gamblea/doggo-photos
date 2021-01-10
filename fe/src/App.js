@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import "./App.css";
 
 import { Row, Col, Container, Button } from "react-bootstrap";
@@ -9,7 +8,6 @@ import {
   Route,
   Link,
   useHistory,
-  useRouteMatch,
 } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -29,7 +27,7 @@ function App() {
     if (key) {
       setloginKey(key);
     }
-  });
+  }, []);
   return (
     <Router>
       <Container>
@@ -66,7 +64,6 @@ function StartMenu({ loginKey, setloginKey }) {
     }
   });
 
-  let { path, url } = useRouteMatch();
   return (
     <Row className="center-block text-center start-menu">
       <Col>

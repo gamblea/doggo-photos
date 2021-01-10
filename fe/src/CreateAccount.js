@@ -9,7 +9,6 @@ import Cookies from "js-cookie";
 
 function createOnCreateAccount(setloginKey, setCreateAccountError, history) {
   return (data) => {
-    console.log(data);
     axios
       .post(`/api/account/create`, {
         username: data.username,
@@ -17,8 +16,6 @@ function createOnCreateAccount(setloginKey, setCreateAccountError, history) {
       })
       .then((res) => {
         const loginKey = res.data?.loginKey;
-        console.log("loginKey");
-        console.log(loginKey);
         if (loginKey) {
           Cookies.set("doggo-photos-loginKey", res.data.loginKey, {
             expires: 7,
@@ -26,16 +23,10 @@ function createOnCreateAccount(setloginKey, setCreateAccountError, history) {
           setloginKey(loginKey);
 
           history.push("/dashboard");
-
-          // window.localStorage.setItem("loginKey", res.data.loginKey);
-          // setloginKey(res.data.loginKey);
-          // setUser(res.data.name);
         } else {
           const loginError = res.data?.error ? res.data?.error : "Login Error";
           setCreateAccountError(loginError);
         }
-        console.log(res);
-        console.log(res.data);
       })
       .catch((err) => {
         setCreateAccountError("Could not create account");
@@ -55,7 +46,7 @@ const schema = yup.object().shape({
 export function CreateAccount({ setloginKey }) {
   const [createAccountError, setCreateAccountError] = useState("");
   const history = useHistory();
-  const { register, handleSubmit, watch, errors } = useForm({
+  const { register, handleSubmit, errors } = useForm({
     resolver: yupResolver(schema),
   });
   return (

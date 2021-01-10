@@ -1,11 +1,8 @@
-import { useForm } from "react-hook-form";
 import { Row, Col, Button, Form, Alert } from "react-bootstrap";
 import axios from "axios";
-import { useHistory, Link, useRouteMatch, Route } from "react-router-dom";
+import { useHistory, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import Switch from "react-bootstrap/esm/Switch";
-
 import Gallery from "react-photo-gallery";
 
 export function Dashboard({ loginKey, setloginKey }) {
@@ -32,11 +29,8 @@ export function Dashboard({ loginKey, setloginKey }) {
             Cookies.remove("doggo-photos-loginKey");
             setloginKey("");
           }
-
-          console.log(res);
-          console.log(res.data);
         })
-        .catch((err) => {
+        .catch(() => {
           Cookies.remove("doggo-photos-loginKey");
           setloginKey("");
         });
@@ -122,23 +116,16 @@ function DogPhotos({ refresh, loginKey, setloginKey, setUpload, history }) {
       })
       .then((res) => {
         const photos = res.data?.photos;
-        const error = res.data?.error;
-        //const photos = res.data?.photos;
+        //const error = res.data?.error;
         if (photos) {
           setPhotos(photos);
         } else {
-          const err = error ? error : "Error";
+          //const err = error ? error : "Error";
           // set error state
         }
-        // if (photos) {
-        //   setPhotos(photos);
-        // }
-
-        console.log(res);
-        console.log(res.data);
       });
-  }, [refresh]);
-  console.log(photos);
+  }, [refresh, loginKey]);
+
   return (
     <div>
       <div style={{ minHeight: "400px" }}>
@@ -184,6 +171,7 @@ function DogPhotos({ refresh, loginKey, setloginKey, setUpload, history }) {
 }
 
 function UploadPhotos({ loginKey, setUpload }) {
+  const [error, setError] = useState("");
   return (
     <div>
       <Row>
@@ -196,7 +184,7 @@ function UploadPhotos({ loginKey, setUpload }) {
               textAlign: "center",
             }}
           >
-            <Form onSubmit={createSubmitUpload(loginKey)}>
+            <Form onSubmit={createSubmitUpload(loginKey, setUpload, setError)}>
               <Form.Group controlId="files">
                 <Form.Label>Upload Photos</Form.Label>
                 <Form.Control name="photos" type="file" multiple />
@@ -205,6 +193,11 @@ function UploadPhotos({ loginKey, setUpload }) {
                 Submit
               </Button>
             </Form>
+            {error ? (
+              <div style={{ marginTop: "10px" }}>
+                <Alert variant="warning">{error}</Alert>
+              </div>
+            ) : null}
           </div>
         </Col>
         <Col md="4"></Col>
@@ -222,7 +215,7 @@ function UploadPhotos({ loginKey, setUpload }) {
   );
 }
 
-function createSubmitUpload(loginKey) {
+function createSubmitUpload(loginKey, setUpload, setError) {
   return function (event) {
     event.preventDefault();
     const data = new FormData(event.target);
@@ -230,6 +223,12 @@ function createSubmitUpload(loginKey) {
     data.set("loginKey", loginKey);
     axios.post(`/api/photos/upload`, data).then((res) => {
       console.log(res);
+      const error = res.data?.error;
+      if (!error) {
+        setUpload(false);
+      } else {
+        setError(error);
+      }
     });
   };
 }
