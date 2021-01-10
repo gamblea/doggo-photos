@@ -23,7 +23,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	_ "image/jpeg"
-	_ "image/png"
 )
 
 // Photos file system storage path mapped to a volume in docker-compose
@@ -443,13 +442,4 @@ func CreateAccountServe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(LoginResponse{LoginKey: loginKey})
-}
-
-// Photo structure for working with uploading photos
-type Photo struct {
-	User   string
-	ID     string
-	Data   []byte
-	Width  int
-	Height int
 }
