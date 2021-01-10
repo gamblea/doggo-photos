@@ -34,6 +34,9 @@ function createOnLogin(setloginKey, setLoginError, history) {
         }
         console.log(res);
         console.log(res.data);
+      })
+      .catch((err) => {
+        setLoginError("Could not login");
       });
   };
 }

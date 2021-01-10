@@ -6,25 +6,39 @@ import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import Switch from "react-bootstrap/esm/Switch";
 
+import Gallery from "react-photo-gallery";
+
 export function Dashboard({ loginKey, setloginKey }) {
   const history = useHistory();
   const [upload, setUpload] = useState(false);
-  const [username, setUsername] = useState(undefined);
-  const [photos, setPhotos] = useState([]);
+  const [username, setUsername] = useState("");
+  const [refresh, setRefresh] = useState(0);
   useEffect(() => {
-    if (loginKey.length > 0) {
+    if (loginKey) {
       axios
         .post(`/api/account/user`, {
           loginKey: loginKey,
         })
         .then((res) => {
           const username = res.data?.username;
+          const error = res.data?.error;
+          //const photos = res.data?.photos;
           if (username) {
             setUsername(username);
+            setRefresh(refresh + 1);
           } else {
           }
+          if (error) {
+            Cookies.remove("doggo-photos-loginKey");
+            setloginKey("");
+          }
+
           console.log(res);
           console.log(res.data);
+        })
+        .catch((err) => {
+          Cookies.remove("doggo-photos-loginKey");
+          setloginKey("");
         });
     }
   }, [loginKey]);
@@ -54,7 +68,8 @@ export function Dashboard({ loginKey, setloginKey }) {
                         />
                       ) : (
                         <DogPhotos
-                          photos={photos}
+                          refresh={refresh}
+                          loginKey={loginKey}
                           setloginKey={setloginKey}
                           setUpload={setUpload}
                           history={history}
@@ -97,14 +112,49 @@ function CreateLogout(setloginKey, history) {
 }
 
 // Need to pull photos from db and create links for them
-function DogPhotos({ photos, setloginKey, setUpload, history }) {
+function DogPhotos({ refresh, loginKey, setloginKey, setUpload, history }) {
+  const [photos, setPhotos] = useState([]);
+  useEffect(() => {
+    // Get Photos
+    axios
+      .post(`/api/account/photos`, {
+        loginKey: loginKey,
+      })
+      .then((res) => {
+        const photos = res.data?.photos;
+        const error = res.data?.error;
+        //const photos = res.data?.photos;
+        if (photos) {
+          setPhotos(photos);
+        } else {
+          const err = error ? error : "Error";
+          // set error state
+        }
+        // if (photos) {
+        //   setPhotos(photos);
+        // }
+
+        console.log(res);
+        console.log(res.data);
+      });
+  }, [refresh]);
+  console.log(photos);
   return (
     <div>
       <div style={{ minHeight: "400px" }}>
         {photos.length <= 0 ? (
           <p>Add some photos of cute dogs!</p>
         ) : (
-          <div></div>
+          <div>
+            <Gallery
+              photos={photos.map((photo) => {
+                if (!photo.src.includes("key")) {
+                  photo.src = photo.src + `?key=${loginKey}`;
+                }
+                return photo;
+              })}
+            />
+          </div>
         )}
       </div>
       <Row>

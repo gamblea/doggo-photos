@@ -3,24 +3,44 @@ import { Row, Col, Button, Form, Alert } from "react-bootstrap";
 import axios from "axios";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { useState } from "react";
+import { useHistory } from "react-router-dom";
+import Cookies from "js-cookie";
 
-function onCreateAccount(data) {
-  console.log(data);
-  axios
-    .post(`/api/CreateAccount`, {
-      username: data.username,
-      password: data.password,
-    })
-    .then((res) => {
-      if (res.data) {
-        // window.localStorage.setItem("loginKey", res.data.loginKey);
-        // setloginKey(res.data.loginKey);
-        // setUser(res.data.name);
-      }
-      console.log(res);
-      console.log(res.data);
-      //setPage(3);
-    });
+function createOnCreateAccount(setloginKey, setCreateAccountError, history) {
+  return (data) => {
+    console.log(data);
+    axios
+      .post(`/api/account/create`, {
+        username: data.username,
+        password: data.password,
+      })
+      .then((res) => {
+        const loginKey = res.data?.loginKey;
+        console.log("loginKey");
+        console.log(loginKey);
+        if (loginKey) {
+          Cookies.set("doggo-photos-loginKey", res.data.loginKey, {
+            expires: 7,
+          });
+          setloginKey(loginKey);
+
+          history.push("/dashboard");
+
+          // window.localStorage.setItem("loginKey", res.data.loginKey);
+          // setloginKey(res.data.loginKey);
+          // setUser(res.data.name);
+        } else {
+          const loginError = res.data?.error ? res.data?.error : "Login Error";
+          setCreateAccountError(loginError);
+        }
+        console.log(res);
+        console.log(res.data);
+      })
+      .catch((err) => {
+        setCreateAccountError("Could not create account");
+      });
+  };
 }
 
 const schema = yup.object().shape({
@@ -32,7 +52,9 @@ const schema = yup.object().shape({
     .required("Required"),
 });
 
-export function CreateAccount() {
+export function CreateAccount({ setloginKey }) {
+  const [createAccountError, setCreateAccountError] = useState("");
+  const history = useHistory();
   const { register, handleSubmit, watch, errors } = useForm({
     resolver: yupResolver(schema),
   });
@@ -40,7 +62,11 @@ export function CreateAccount() {
     <Row className="vertical-center">
       <Col md="3"></Col>
       <Col>
-        <Form onSubmit={handleSubmit(onCreateAccount)}>
+        <Form
+          onSubmit={handleSubmit(
+            createOnCreateAccount(setloginKey, setCreateAccountError, history)
+          )}
+        >
           <Form.Group controlId="formBasicEmail">
             <Form.Label>Username</Form.Label>
             <Form.Control
@@ -69,7 +95,7 @@ export function CreateAccount() {
             <Form.Label>Confirm Password</Form.Label>
             <Form.Control
               name="confirmPassword"
-              type="confirmPassword"
+              type="password"
               placeholder="Repeat Password"
               ref={register}
             />
@@ -81,6 +107,11 @@ export function CreateAccount() {
             Submit
           </Button>
         </Form>
+        {createAccountError ? (
+          <div style={{ marginTop: "10px" }}>
+            <Alert variant="warning">{createAccountError}</Alert>
+          </div>
+        ) : null}
       </Col>
       <Col md="3"></Col>
     </Row>
